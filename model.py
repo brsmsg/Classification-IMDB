@@ -7,8 +7,9 @@ class TCNNConfig(object):
     embedding_dim = 256      # 词向量维度
     seq_length = 256        # 序列长度
     num_classes = 2        # 类别数
-    num_filters = 256        # 卷积核数目
-    kernel_size = 5         # 卷积核尺寸
+    num_filters = 100        # 卷积核数目
+    #kernel_size = 5         # 卷积核尺寸
+    kernel_sizes = [2, 3, 4]
     vocab_size = 5000       # 词汇表达小
 
     hidden_dim = 128        # 全连接层神经元
@@ -44,10 +45,18 @@ class TextCNN(object):
             embedding_inputs = tf.nn.embedding_lookup(embedding, self.input_x)
 
         with tf.name_scope("cnn"):
+            """
             # CNN layer
             conv = tf.layers.conv1d(embedding_inputs, self.config.num_filters, self.config.kernel_size, name='conv')
             # global max pooling layer
             gmp = tf.reduce_max(conv, reduction_indices=[1], name='gmp')
+            """
+            gmp = []
+            for i, size in enumerate(self.config.kernel_sizes):
+                conv = tf.layers.conv1d(embedding_inputs, self.config.num_filters, size)
+                pooled = tf.reduce_max(conv, reduction_indices=[1], name = 'gmp')
+                gmp.append(pooled)
+            gmp = tf.concat(gmp, 1)
 
         with tf.name_scope("score"):
             # 全连接层，后面接dropout以及relu激活
