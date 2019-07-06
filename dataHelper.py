@@ -92,17 +92,21 @@ def build_vocab(train_path, vocab_path, vocab_size):
     vocab = sorted(vocab.items(), key = lambda vocab:vocab[1], reverse=True)
     # print(vocab)
     for i in range(vocab_size):
-        f1.write(vocab[i][0]+'\n')
+        f1.write(vocab[i][0] + '\t' + str(judge_sentiment(vocab[i][0])) + '\n')
+        #f1.write(vocab[i][0]+'\n')
     f.close()
     f1.close()
 
 
 def prepare_vocab(vocab_path):
+    word_to_id = {}
     with open(vocab_path, encoding='utf-8') as f:
-        words = [_.strip() for _ in f.readlines()]
-        word_to_id = dict(zip(words, range(len(words))))
-    # print(words, word_to_id)
-    print()
+        words = [_.strip().split() for _ in f.readlines()]
+        for i in range(len(words)):
+            word_to_id[words[i][0]] = [i, float(words[i][1])]
+#           word_senti[words[i][0]] = words[i][1]
+    print(words)
+    print(word_to_id)
     f.close()
     return words, word_to_id
 
@@ -127,32 +131,31 @@ def prepare_data(pos_path, neg_path, word_to_id, cat_to_id, max_length, num):
         content = word_tokenize(contents[i])
         data_id.append([word_to_id[x] for x in content if x in word_to_id])
         label_id.append(cat_to_id[labels[i]])
-
     x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length)
     y_pad = kr.utils.to_categorical(label_id, num_classes=2)
     #print(x_pad[1:5])
     return x_pad, y_pad
 
 
-def prepare_senti_data(pos_path, neg_path, cat_to_id, max_length):
-    contents, labels = read_file(pos_path, neg_path)
+def prepare_senti_data(pos_path, neg_path, word_to_id, cat_to_id, max_length, num):
+    contents, labels = read_file(pos_path, neg_path, num)
     data_id = []
     label_id = []
-
     for i in range(len(contents)):
-        data_id.append([judge_sentiment(word) for word in contents[i]])
+        content = word_tokenize(contents[i])
+        data_id.append([word_to_id[x][0]*word_to_id[x][1] for x in content if x in word_to_id])
         label_id.append(cat_to_id[labels[i]])
-
-    x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length)
+    x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length, value=2499)
     y_pad = kr.utils.to_categorical(label_id, num_classes=2)
     # print(x_pad[1:5])
+    print(x_pad)
+
     return x_pad, y_pad
 
 
 build_vocab(POS_PATH, VOCAB_PATH, vocab_size= 5000)
-
 # read_file(POS_PATH, NEG_PATH)
-# words, word_to_id = prepare_vocab(VOCAB_PATH)
+#words, word_to_id = prepare_vocab(VOCAB_PATH)
 # cat, cat_to_id = prepare_cat()
 # prepare_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, 200)
 # prepare_senti_data(POS_PATH, NEG_PATH, cat_to_id, 200)

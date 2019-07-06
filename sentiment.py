@@ -10,7 +10,6 @@ def judge_sentiment(word):
     if sent['compound'] >= 0.1:
         return 1
     elif sent['compound'] <= -0.1:
-        return -1
+        return 2
     else:
         return 0
-

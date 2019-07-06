@@ -4,10 +4,12 @@ import tensorflow as tf
 
 class TCNNConfig(object):
     """CNN配置参数"""
-    embedding_dim = 256      # 词向量维度
+    embedding_dim = 50      # 词向量维度
     seq_length = 256        # 序列长度
     num_classes = 2        # 类别数
     num_filters = 100        # 卷积核数目
+    pos_embedding_dim = 100 #position_embedding维度
+
     #kernel_size = 5         # 卷积核尺寸
     kernel_sizes = [2, 3, 4]
     vocab_size = 5000       # 词汇表达小
@@ -35,7 +37,11 @@ class TextCNN(object):
         self.input_y = tf.placeholder(tf.float32, [None, self.config.num_classes], name='input_y')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
+        #self.input_pos = tf.placeholder(tf.int32, [None, self.config.seq_length], name='input_pos')
         self.cnn()
+
+    #def position_embedding(self, inputs, vocab_size, pos_emb_dim):
+    #    lookup_table = tf.get_variable(tf.float32, [vocab_size, pos_emb_dim], )
 
     def cnn(self):
         """CNN模型"""

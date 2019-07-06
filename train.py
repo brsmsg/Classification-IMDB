@@ -17,6 +17,8 @@ def batch_iter(x, y, batch_size):
     data_len = len(x)
     num_batch = int((data_len - 1) / batch_size) + 1
 
+    #pos = [i for i in range(model.config.seq_length)]
+
     indices = np.random.permutation(np.arange(data_len))
     x_shuffle = x[indices]
     y_shuffle = y[indices]
@@ -35,10 +37,13 @@ def get_time_dif(start_time):
 
 
 def feed_data(x_batch, y_batch, keep_prob):
+
     feed_dict = {
         model.input_x: x_batch,
         model.input_y: y_batch,
-        model.keep_prob: keep_prob
+        model.keep_prob: keep_prob,
+
+        #model.input_pos:
     }
     return feed_dict
 
@@ -81,7 +86,8 @@ def train():
     start_time = time.time()
     # x_train, y_train = process_file(train_dir, word_to_id, cat_to_id, config.seq_length)
     # x_val, y_val = process_file(val_dir, word_to_id, cat_to_id, config.seq_length)
-    x_train, y_train = prepare_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
+    #x_train, y_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 2500)
+    x_train, y_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
 
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
@@ -145,7 +151,9 @@ def train():
 
 def test():
     # start_time = time.time()
-    x_test, y_test = prepare_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
+    #    x_test, y_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
+    x_test, y_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
+
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
@@ -183,6 +191,7 @@ def test():
 if __name__ == '__main__':
     config = TCNNConfig()
     categories, cat_to_id = prepare_cat()
+    #words, word_to_id = prepare_vocab(VOCAB_PATH)
     words, word_to_id = prepare_vocab(VOCAB_PATH)
     config.vocab_size = len(words)
     model = TextCNN(config)
