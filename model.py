@@ -4,7 +4,7 @@ import tensorflow as tf
 
 class TCNNConfig(object):
     """CNN配置参数"""
-    embedding_dim = 50      # 词向量维度
+    embedding_dim = 256      # 词向量维度
     seq_length = 256        # 序列长度
     num_classes = 2        # 类别数
     num_filters = 100        # 卷积核数目
@@ -16,7 +16,7 @@ class TCNNConfig(object):
 
     hidden_dim = 128        # 全连接层神经元
 
-    dropout_keep_prob = 0.9  # dropout保留比例
+    dropout_keep_prob = 0.5  # dropout保留比例
     learning_rate = 1e-3    # 学习率
     regular_rate = 1e-4     #l2正则
 
@@ -37,18 +37,26 @@ class TextCNN(object):
         self.input_y = tf.placeholder(tf.float32, [None, self.config.num_classes], name='input_y')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
-        #self.input_pos = tf.placeholder(tf.int32, [None, self.config.seq_length], name='input_pos')
+        self.input_pos = tf.placeholder(tf.int32, [None, self.config.seq_length], name='input_pos')
         self.cnn()
 
     #def position_embedding(self, inputs, vocab_size, pos_emb_dim):
     #    lookup_table = tf.get_variable(tf.float32, [vocab_size, pos_emb_dim], )
+
 
     def cnn(self):
         """CNN模型"""
         # 词向量映射
         with tf.device('/cpu:0'):
             embedding = tf.get_variable('embedding', [self.config.vocab_size, self.config.embedding_dim])
-            embedding_inputs = tf.nn.embedding_lookup(embedding, self.input_x)
+            embedding_inputs1 = tf.nn.embedding_lookup(embedding, self.input_x) # [None, seq_length, embedding_dim]
+
+
+            pos_embedding = tf.get_variable('pos_embedding', [self.config.vocab_size, 5])
+            embedding_inputs2 = tf.nn.embedding_lookup(pos_embedding, self.input_pos)
+
+            embedding_inputs = tf.concat([embedding_inputs1, embedding_inputs2], -1)
+
 
         with tf.name_scope("cnn"):
             """

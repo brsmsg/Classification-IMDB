@@ -127,33 +127,50 @@ def prepare_data(pos_path, neg_path, word_to_id, cat_to_id, max_length, num):
     data_id = []
     label_id = []
 
+    pos = []
+
     for i in range(len(contents)):
         content = word_tokenize(contents[i])
-        data_id.append([word_to_id[x] for x in content if x in word_to_id])
+
+        pos.append([i for i in range(len(content))])
+
+        data_id.append([word_to_id[x][0] for x in content if x in word_to_id])
         label_id.append(cat_to_id[labels[i]])
+
     x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length)
+    pos_pad = kr.preprocessing.sequence.pad_sequences(pos, max_length)
     y_pad = kr.utils.to_categorical(label_id, num_classes=2)
     #print(x_pad[1:5])
-    return x_pad, y_pad
+    return x_pad, y_pad, pos_pad
 
 
 def prepare_senti_data(pos_path, neg_path, word_to_id, cat_to_id, max_length, num):
     contents, labels = read_file(pos_path, neg_path, num)
     data_id = []
     label_id = []
+    pos = []
+
     for i in range(len(contents)):
         content = word_tokenize(contents[i])
-        data_id.append([word_to_id[x][0]*word_to_id[x][1] for x in content if x in word_to_id])
+
+        pos.append([i for i in range(len(content))])
+        #print(pos)
+        data_id.append([word_to_id[x][0]*word_to_id[x][1]/2 for x in content if x in word_to_id])
         label_id.append(cat_to_id[labels[i]])
-    x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length, value=2499)
+
+    #print(pos)
+    #print(data_id)
+    x_pad = kr.preprocessing.sequence.pad_sequences(data_id, max_length)
+    pos_pad = kr.preprocessing.sequence.pad_sequences(pos, max_length)
+
     y_pad = kr.utils.to_categorical(label_id, num_classes=2)
     # print(x_pad[1:5])
     print(x_pad)
 
-    return x_pad, y_pad
+    return x_pad, y_pad, pos_pad
 
 
-build_vocab(POS_PATH, VOCAB_PATH, vocab_size= 5000)
+#build_vocab(POS_PATH, VOCAB_PATH, vocab_size= 5000)
 # read_file(POS_PATH, NEG_PATH)
 #words, word_to_id = prepare_vocab(VOCAB_PATH)
 # cat, cat_to_id = prepare_cat()

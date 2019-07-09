@@ -12,21 +12,22 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 save_path = 'D:\\DataSet\\IMDB\\aclImdb\\model'
 
 
-def batch_iter(x, y, batch_size):
+def batch_iter(x, y, pos, batch_size):
     """生成批次数据"""
     data_len = len(x)
     num_batch = int((data_len - 1) / batch_size) + 1
 
-    #pos = [i for i in range(model.config.seq_length)]
+    # pos = [i for i in range(model.config.seq_length)]
 
     indices = np.random.permutation(np.arange(data_len))
     x_shuffle = x[indices]
     y_shuffle = y[indices]
+    pos_shuffle = pos[indices]
 
     for i in range(num_batch):
         start_id = i * batch_size
         end_id = min((i + 1) * batch_size, data_len)
-        yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id]
+        yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id], pos_shuffle[start_id:end_id]
 
 
 def get_time_dif(start_time):
@@ -36,27 +37,26 @@ def get_time_dif(start_time):
     return timedelta(seconds=int(round(time_dif)))
 
 
-def feed_data(x_batch, y_batch, keep_prob):
+def feed_data(x_batch, y_batch, pos_batch, keep_prob):
 
     feed_dict = {
         model.input_x: x_batch,
         model.input_y: y_batch,
-        model.keep_prob: keep_prob,
-
-        #model.input_pos:
+        model.input_pos: pos_batch,
+        model.keep_prob: keep_prob
     }
     return feed_dict
 
 
-def evaluate(sess, x_, y_):
+def evaluate(sess, x_, y_, pos):
     """评估在某一数据上的准确率和损失"""
     data_len = len(x_)
-    batch_eval = batch_iter(x_, y_, 128)
+    batch_eval = batch_iter(x_, y_, pos, 128)
     total_loss = 0.0
     total_acc = 0.0
-    for x_batch, y_batch in batch_eval:
+    for x_batch, y_batch, pos_batch in batch_eval:
         batch_len = len(x_batch)
-        feed_dict = feed_data(x_batch, y_batch, 1.0)
+        feed_dict = feed_data(x_batch, y_batch, pos_batch, 1.0)
         loss, acc = sess.run([model.loss, model.acc], feed_dict=feed_dict)
         total_loss += loss * batch_len
         total_acc += acc * batch_len
@@ -86,8 +86,8 @@ def train():
     start_time = time.time()
     # x_train, y_train = process_file(train_dir, word_to_id, cat_to_id, config.seq_length)
     # x_val, y_val = process_file(val_dir, word_to_id, cat_to_id, config.seq_length)
-    #x_train, y_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 2500)
-    x_train, y_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
+    #x_train, y_train, pos_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
+    x_train, y_train, pos_train = prepare_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
 
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
@@ -107,9 +107,9 @@ def train():
     flag = False
     for epoch in range(config.num_epochs):
         print('Epoch:', epoch + 1)
-        batch_train = batch_iter(x_train, y_train, config.batch_size)
-        for x_batch, y_batch in batch_train:
-            feed_dict = feed_data(x_batch, y_batch, config.dropout_keep_prob)
+        batch_train = batch_iter(x_train, y_train, pos_train, config.batch_size)
+        for x_batch, y_batch, pos_batch in batch_train:
+            feed_dict = feed_data(x_batch, y_batch,pos_batch, config.dropout_keep_prob)
 
             if total_batch % config.save_per_batch == 0:
                 # 每多少轮次将训练结果写入tensorboard scalar
@@ -151,8 +151,8 @@ def train():
 
 def test():
     # start_time = time.time()
-    #    x_test, y_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
-    x_test, y_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
+    #x_test, y_test, pos_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
+    x_test, y_test, pos_test = prepare_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
 
 
     sess = tf.Session()
@@ -161,7 +161,7 @@ def test():
     saver.restore(sess = sess, save_path=save_path) # 读取保存的模型
     print('testing..')
 
-    loss_test, acc_test = evaluate(sess, x_test, y_test)
+    loss_test, acc_test = evaluate(sess, x_test, y_test, pos_test)
     print(loss_test, acc_test)
 
     batch_size = 128
@@ -176,6 +176,7 @@ def test():
         end_id = min((i+1)*batch_size, data_len)
         feed_dict = {
             model.input_x:x_test[start_id:end_id],
+            model.input_pos:pos_test[start_id:end_id],
             model.keep_prob:1.0
         }
         y_pred_cls[start_id:end_id] = sess.run(model.y_pred_cls, feed_dict=feed_dict)
