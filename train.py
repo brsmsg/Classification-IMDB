@@ -9,15 +9,13 @@ from datetime import timedelta
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-save_path = 'D:\\DataSet\\IMDB\\aclImdb\\model'
+save_path = 'data\\model'
 
 
 def batch_iter(x, y, pos, batch_size):
     """生成批次数据"""
     data_len = len(x)
     num_batch = int((data_len - 1) / batch_size) + 1
-
-    # pos = [i for i in range(model.config.seq_length)]
 
     indices = np.random.permutation(np.arange(data_len))
     x_shuffle = x[indices]
@@ -66,7 +64,6 @@ def evaluate(sess, x_, y_, pos):
 
 def train():
     print("Configuring TensorBoard and Saver...")
-    # 配置 Tensorboard，重新训练时，请将tensorboard文件夹删除，不然图会覆盖
     tensorboard_dir = 'tensorboard/textcnn'
     if not os.path.exists(tensorboard_dir):
         os.makedirs(tensorboard_dir)
@@ -78,14 +75,10 @@ def train():
 
     # 配置 Saver
     saver = tf.train.Saver()
-    # if not os.path.exists(save_dir):
-    # os.makedirs(save_dir)
 
     print("Loading training and validation data...")
     # 载入训练集与验证集
     start_time = time.time()
-    # x_train, y_train = process_file(train_dir, word_to_id, cat_to_id, config.seq_length)
-    # x_val, y_val = process_file(val_dir, word_to_id, cat_to_id, config.seq_length)
     #x_train, y_train, pos_train = prepare_senti_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
     x_train, y_train, pos_train = prepare_data(POS_PATH, NEG_PATH, word_to_id, cat_to_id, config.seq_length, 5000)
 
@@ -117,11 +110,7 @@ def train():
                 writer.add_summary(s, total_batch)
 
             if total_batch % config.print_per_batch == 0:
-                # 每多少轮次输出在训练集和验证集上的性能
-                # feed_dict[model.keep_prob] = 1.0
-
                 loss_train, acc_train = session.run([model.loss, model.acc], feed_dict=feed_dict)
-                # loss_val, acc_val = evaluate(session, x_val, y_val)   # todo
 
                 if acc_train > best_acc_val:
                     # 保存最好结果
@@ -131,9 +120,6 @@ def train():
 
                 time_dif = get_time_dif(start_time)
                 print(total_batch, time_dif, loss_train, acc_train)
-                # msg = 'Iter: {0:>6}, Train Loss: {1:>6.2}, Train Acc: {2:>7.2%},'\
-                #    + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}, Time: {5} {6}'
-                # print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val, time_dif, improved_str))
 
             session.run(model.optim, feed_dict=feed_dict)  # 运行优化
             total_batch += 1
@@ -146,11 +132,10 @@ def train():
 
         if flag:  # 同上
             break
-        # saver.save(sess=session, save_path=save_path)
+        saver.save(sess=session, save_path=save_path)
 
 
 def test():
-    # start_time = time.time()
     #x_test, y_test, pos_test = prepare_senti_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
     x_test, y_test, pos_test = prepare_data(TEST_POS_PATH, TEST_NEG_PATH, word_to_id, cat_to_id, config.seq_length, 1000)
 
@@ -180,7 +165,6 @@ def test():
             model.keep_prob:1.0
         }
         y_pred_cls[start_id:end_id] = sess.run(model.y_pred_cls, feed_dict=feed_dict)
-    # print(y_pred_cls.shape, y_test_cls.shape)
 
     y_pred_cls = [id_to_cat(id) for id in y_pred_cls]
     y_test_cls = [id_to_cat(id) for id in y_test_cls]
@@ -192,7 +176,6 @@ def test():
 if __name__ == '__main__':
     config = TCNNConfig()
     categories, cat_to_id = prepare_cat()
-    #words, word_to_id = prepare_vocab(VOCAB_PATH)
     words, word_to_id = prepare_vocab(VOCAB_PATH)
     config.vocab_size = len(words)
     model = TextCNN(config)
